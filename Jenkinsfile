@@ -59,9 +59,9 @@ pipeline {
                             // Give SonarQube 10 seconds between checks to process background metrics
                             sleep 10
                             
-                            // Query SonarQube's public API directly for the status of the current task
+                            // FIXED: Complete URL routing through host.docker.internal:9000
                             def response = sh(
-                                script: "curl -s -u ${SONAR_TOKEN}: http://172.17.0",
+                                script: "curl -s -u ${SONAR_TOKEN}: http://docker.internal",
                                 returnStdout: true
                             ).trim()
                             
@@ -78,9 +78,9 @@ pipeline {
                             echo "Current Analysis Status: ${status}"
                         }
                         
-                        // Fetch the final Quality Gate Metric (Passed or Failed) from the project status endpoint
+                        // FIXED: Complete URL routing through host.docker.internal:9000
                         def gateResponse = sh(
-                            script: "curl -s -u ${SONAR_TOKEN}: http://172.17.0",
+                            script: "curl -s -u ${SONAR_TOKEN}: http://docker.internal",
                             returnStdout: true
                         ).trim()
                         
