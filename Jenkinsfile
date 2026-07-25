@@ -2,8 +2,11 @@ pipeline {
     agent any
 
     environment {
-        // Kept your existing functional credential injection
+        // Keeps your functional web credential token injection
         SONAR_TOKEN = credentials('sonar-token') 
+        
+        // CRITICAL: Dynamically pulls the installation directory you configured in the UI
+        SONAR_SCANNER_HOME = tool 'SonarScanner' 
     }
 
     stages {
@@ -28,7 +31,6 @@ pipeline {
             steps {
                 sh './venv/bin/pytest tests/ -v --junitxml=test-results/results.xml --cov=src --cov-report=xml:test-results/coverage.xml'
             }
-            // FIX #2: Moved junit parsing here so it never runs without a local workspace environment
             post {
                 always {
                     junit 'test-results/*.xml'
@@ -39,9 +41,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {  
-                    // FIX #1: Replaced the 'tool' variable path lookup with direct system runner execution 
-                    // This prevents Jenkins from failing if the Global Tool configuration naming is mismatched
-                    sh "sonar-scanner -Dsonar.token=${SONAR_TOKEN}"
+                    // CRITICAL FIX: Directs execution via the absolute tool path variable
+                    sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner -Dsonar.token=${SONAR_TOKEN}"
                 }
             }
         }
