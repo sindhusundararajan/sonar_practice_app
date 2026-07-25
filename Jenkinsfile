@@ -2,7 +2,10 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('sonar-token') // set this up in Jenkins Credentials first
+        // Keeps your existing credential injection
+        SONAR_TOKEN = credentials('sonar-token') 
+        // Best Practice: Dynamically grab the scanner tool path from global configuration
+        SONAR_SCANNER_HOME = tool 'SonarScanner' 
     }
 
     stages {
@@ -14,26 +17,30 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'python3 -m venv venv'
-                sh './venv/bin/pip install -r requirements.txt'
+                // Grouped sh commands into a multi-line string for faster execution
+                sh '''
+                    python3 -m venv venv
+                    ./venv/bin/pip install --upgrade pip
+                    ./venv/bin/pip install -r requirements.txt
+                    ./venv/bin/pip install pytest-cov
+                '''
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Tests & Coverage') {
             steps {
-                sh './venv/bin/pytest tests/ -v --junitxml=test-results/results.xml'
+                // Added code coverage parameters so SonarQube can track code health
+                sh './venv/bin/pytest tests/ -v --junitxml=test-results/results.xml --cov=src --cov-report=xml:test-results/coverage.xml'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {  // 'SonarQube' must match the server name configured in Manage Jenkins
-                    //sh 'sonar-scanner -Dsonar.login=${SONAR_TOKEN}'
-                    sh "sonar-scanner \
-                        -Dsonar.projectKey=sonar_practice_app \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=http://localhost:9000 \
-                        -Dsonar.login=${SONAR_TOKEN}"
+                // 'SonarQube' must match the server name configured in Manage Jenkins
+                withSonarQubeEnv('SonarQube') {  
+                    // CRITICAL FIX: Changed to double quotes so ${SONAR_TOKEN} executes properly
+                    // Crucial Fix: Used absolute tool path to prevent "command not found" errors
+                    sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner -Dsonar.token=${SONAR_TOKEN}"
                 }
             }
         }
