@@ -28,7 +28,12 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {  // 'SonarQube' must match the server name configured in Manage Jenkins
-                    sh 'sonar-scanner -Dsonar.login=${SONAR_TOKEN}'
+                    //sh 'sonar-scanner -Dsonar.login=${SONAR_TOKEN}'
+                    sh "sonar-scanner \
+                        -Dsonar.projectKey=sonar_practice_app \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=${SONAR_TOKEN}"
                 }
             }
         }
