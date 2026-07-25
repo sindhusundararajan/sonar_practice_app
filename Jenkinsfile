@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Keeps your existing credential injection
+        // Kept your existing functional credential injection
         SONAR_TOKEN = credentials('sonar-token') 
-        // Best Practice: Dynamically grab the scanner tool path from global configuration
-        SONAR_SCANNER_HOME = tool 'SonarScanner' 
     }
 
     stages {
@@ -17,7 +15,6 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                // Grouped sh commands into a multi-line string for faster execution
                 sh '''
                     python3 -m venv venv
                     ./venv/bin/pip install --upgrade pip
@@ -29,18 +26,22 @@ pipeline {
 
         stage('Run Tests & Coverage') {
             steps {
-                // Added code coverage parameters so SonarQube can track code health
                 sh './venv/bin/pytest tests/ -v --junitxml=test-results/results.xml --cov=src --cov-report=xml:test-results/coverage.xml'
+            }
+            // FIX #2: Moved junit parsing here so it never runs without a local workspace environment
+            post {
+                always {
+                    junit 'test-results/*.xml'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                // 'SonarQube' must match the server name configured in Manage Jenkins
                 withSonarQubeEnv('SonarQube') {  
-                    // CRITICAL FIX: Changed to double quotes so ${SONAR_TOKEN} executes properly
-                    // Crucial Fix: Used absolute tool path to prevent "command not found" errors
-                    sh "${SONAR_SCANNER_HOME}/bin/sonar-scanner -Dsonar.token=${SONAR_TOKEN}"
+                    // FIX #1: Replaced the 'tool' variable path lookup with direct system runner execution 
+                    // This prevents Jenkins from failing if the Global Tool configuration naming is mismatched
+                    sh "sonar-scanner -Dsonar.token=${SONAR_TOKEN}"
                 }
             }
         }
@@ -56,12 +57,6 @@ pipeline {
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            junit 'test-results/*.xml'
         }
     }
 }
