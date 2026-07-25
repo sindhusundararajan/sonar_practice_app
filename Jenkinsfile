@@ -51,7 +51,7 @@ pipeline {
             steps { //Chaged time from 2 to 5
                 timeout(time: 5, unit: 'MINUTES') {
                     script {
-                        def qg = waitForQualityGate()
+                        def qg = waitForQualityGate(webhookDefined: false)
                         if (qg.status != 'OK') {
                             error "Quality gate failed: ${qg.status}"
                         }
